@@ -19,51 +19,39 @@ function addOne(x) {
 function chain(fns) {
 	const handler = {
 		get(target, propKey, receiver) {
-			console.log('----------------------------------------------------');
-			console.log('Trying to call:', target, propKey);
+			// console.log('----------------------------------------------------');
+			// console.log('Trying to call:', target, propKey);
 			// console.dir(receiver); // WTF!??!??!?
-			console.log('Target is proxy?', target.isProxy);
 
-			let { executed, value } = target;
+			let { value } = target;
 
 			if (propKey === "execute") {
-				console.log('Return value', value);
-				return () => executed = true && value;
+				// console.log('Return value', value);
+				return () => value;
 			}
 
 			let originalMethod = fns[propKey];
 			if (!originalMethod) {
-				console.log('method not found in passed functions');
+				// console.log('method not found in passed functions');
 			}
 
+			// if not using `this` change to ()=>{}
 			return function (...args) {
 				if (value) {
-					args = [value, ...args];	
+					args = [value, ...args];
 				}
-				executed = false;
 
-				const newValue = originalMethod.apply(undefined, args);
-				console.log(originalMethod.constructor.name);
-				console.log('executing...', originalMethod, value, newValue);
-				value = newValue;
+				value = originalMethod.apply(this, args);
 
 				// Would like to avoid creating new Proxy every time
 				// but not sure if viable since at each step we're creating
 				// a new branch in the chain effectively
-				return new Proxy({
-					...target,
-					value,
-					executed
-				}, handler);
+				return new Proxy({ value }, handler);
 			}
 		}
 	}
 
-	return new Proxy({
-		isProxy: true,
-		executed: false,
-		value: null,
-	}, handler);
+	return new Proxy({ value: null }, handler);
 }
 
 var c = chain({ sum, minus, double, addOne });
@@ -105,3 +93,6 @@ assert(r1 === 3);
 
 // 	return new Proxy(obj, handler);
 // }
+
+console.log("All tests PASSED! 👍");
+
