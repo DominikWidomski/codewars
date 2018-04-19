@@ -24,7 +24,7 @@ function chain(fns) {
 			// console.dir(receiver); // WTF!??!??!?
 			console.log('Target is proxy?', target.isProxy);
 
-			let { executed, value, fresh } = target;
+			let { executed, value } = target;
 
 			if (propKey === "execute") {
 				console.log('Return value', value);
@@ -37,11 +37,9 @@ function chain(fns) {
 			}
 
 			return function (...args) {
-				if (!fresh) { // might not need this any more
-					console.log('there is value');
+				if (value) {
 					args = [value, ...args];	
 				}
-				fresh = false;
 				executed = false;
 
 				const newValue = originalMethod.apply(undefined, args);
@@ -49,27 +47,23 @@ function chain(fns) {
 				console.log('executing...', originalMethod, value, newValue);
 				value = newValue;
 
-				// trying to avoid creating new Proxy every time
-				// console.log(">", this);
-				// return this;
+				// Would like to avoid creating new Proxy every time
+				// but not sure if viable since at each step we're creating
+				// a new branch in the chain effectively
 				return new Proxy({
 					...target,
 					value,
-					fresh,
 					executed
 				}, handler);
 			}
 		}
 	}
 
-	const obj = {
+	return new Proxy({
 		isProxy: true,
 		executed: false,
-		fresh: true,
 		value: null,
-	}
-
-	return new Proxy(obj, handler);
+	}, handler);
 }
 
 var c = chain({ sum, minus, double, addOne });
